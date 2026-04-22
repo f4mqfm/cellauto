@@ -1,0 +1,84 @@
+.hexagon-wrapper {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.hexagon-wrapper__hexagon-container {
+  --hex-size: 20px;
+  --hex-gap: 2px;
+  --hex-offset: 11px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.hexagon-row {
+  display: flex;
+  gap: var(--hex-gap);
+  margin-top: calc(var(--hex-size) * -0.26);
+}
+
+.hexagon-row:first-child {
+  margin-top: 0;
+}
+
+.hexagon-row--offset {
+  margin-left: var(--hex-offset);
+}
+
+.hexagon__outer {
+  transition: transform 0.2s ease;
+  -webkit-clip-path: polygon(
+    0 25%,
+    50% 0,
+    100% 25%,
+    100% 75%,
+    50% 100%,
+    0 75%
+  );
+  clip-path: polygon(
+    0 25%,
+    50% 0,
+    100% 25%,
+    100% 75%,
+    50% 100%,
+    0 75%
+  );
+  width: var(--hex-size);
+  height: calc(var(--hex-size) * 1.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hexagon__outer:hover {
+  transform: scale(0.9) rotate(2deg);
+}
+
+.hexagon__inner {
+  background-color: #ffffff;
+  color: #284646;
+  -webkit-clip-path: polygon(
+  0 25%,
+  50% 0,
+  100% 25%,
+  100% 75%,
+  50% 100%,
+  0 75%
+  );
+  clip-path: polygon(
+  0 25%,
+  50% 0,
+  100% 25%,
+  100% 75%,
+  50% 100%,
+  0 75%
+  );
+  width: 93%;
+  height: 93%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 7px;
+  text-align: center;
+}

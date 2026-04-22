@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="hu" class="app-shell">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./hex.css?v=5">
+  <link rel="stylesheet" href="./style.css?v=5">
+  <link rel="stylesheet" href="./app.css?v=23">
+  <title>Borsos László (Sejt automatták)</title>
+  <script src="./config.js?v=5"></script>
+</head>
+
+<body class="app-shell">
+  <div class="app-root">
+    <header class="app-header">
+      <span class="app-header__user" id="authUser" hidden></span>
+      <div class="app-header__actions">
+        <button type="button" id="btnLogin">Bejelentkezés</button>
+        <button type="button" id="btnLogout" hidden>Kijelentkezés</button>
+      </div>
+    </header>
+
+    <div class="app-body">
+      <aside class="app-sidebar">
+        <h2>Beállítások</h2>
+        <p class="app-hint" id="wordListHint"></p>
+        <div id="colorListPickerWrap" class="app-picker" hidden>
+          <label for="colorListSelect">Színpaletta</label>
+          <select id="colorListSelect"></select>
+        </div>
+        <div class="app-picker">
+          <label>Méret és nagyítás</label>
+          <div class="size-zoom-row">
+            <div class="size-zoom-col">
+              <select id="boardSizeSelect">
+                <option value="10">10 x 10</option>
+                <option value="15">15 x 15</option>
+                <option value="20">20 x 20</option>
+                <option value="30" selected>30 x 30</option>
+                <option value="40">40 x 40</option>
+                <option value="50">50 x 50</option>
+                <option value="60">60 x 60</option>
+                <option value="100">100 x 100</option>
+                <option value="200">200 x 200</option>
+              </select>
+            </div>
+            <div class="size-zoom-col">
+              <select id="boardZoomSelect">
+                <option value="0.25">0.25x</option>
+                <option value="0.5">0.5x</option>
+                <option value="1" selected>Normal</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+                <option value="4">4x</option>
+                <option value="5">5x</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="wordListPickerWrap" class="app-picker" hidden>
+          <div id="examTaskWordListReadonly" class="exam-task-wordlist-readonly" hidden>
+            <span class="exam-task-wordlist-readonly__label">Szólista (feladat):</span>
+            <span id="examTaskWordListName" class="exam-task-wordlist-readonly__name">—</span>
+          </div>
+          <div id="examTaskWordListNotes" class="exam-task-wordlist-notes" hidden></div>
+          <label for="wordListSelect" id="wordListSelectLabel">Szólista</label>
+          <select id="wordListSelect"></select>
+          <div id="wordLevelWrap">
+          <form id="wordLevel"></form>
+          </div>
+        </div>
+        <div id="sidebarPlayControls">
+        <div class="app-picker mode-picker">
+          <label>Mód</label>
+          <div class="mode-toggle" id="wordModeToggle">
+            <input type="radio" id="wordModeSelect" name="wordModeToggle" value="select" checked>
+            <label for="wordModeSelect">Select mode</label>
+            <input type="radio" id="wordModeWord" name="wordModeToggle" value="word">
+            <label for="wordModeWord">Word mode</label>
+          </div>
+          <label for="wordQuickPick" class="inline-check">
+            <input type="checkbox" id="wordQuickPick">
+            Gyors szóválasztó (helyi menü)
+          </label>
+          <label for="neighbors">Generálási mód</label>
+          <select name="neighbors" id="neighbors">
+            <option value="side" selected>Square Lateral Neighbor</option>
+            <option value="apex">Square Apex Neighbor</option>
+            <option value="hex">Hexagonal cellular grid</option>
+            <option value="life">Game of Life - B3/S23</option>
+            <option value="life_hex">Game of Life - B36/S23 (HighLife)</option>
+          </select>
+          <!-- www: régi cache-elt HTML-ből hiányozhat a hex opció; pótold, ha nincs -->
+          <script>
+            (function () {
+              var sel = document.getElementById('neighbors');
+              if (!sel) return;
+              var need = [
+                ['side', 'Square Lateral Neighbor'],
+                ['apex', 'Square Apex Neighbor'],
+                ['hex', 'Hexagonal cellular grid'],
+                ['life', 'Game of Life - B3/S23'],
+                ['life_hex', 'Game of Life - B36/S23 (HighLife)']
+              ];
+              var have = {};
+              for (var i = 0; i < sel.options.length; i++) { have[sel.options[i].value] = true; }
+              for (var j = 0; j < need.length; j++) {
+                if (have[need[j][0]]) continue;
+                var o = document.createElement('option');
+                o.value = need[j][0];
+                o.textContent = need[j][1];
+                sel.appendChild(o);
+                have[need[j][0]] = true;
+              }
+            })();
+          </script>
+          <select name="word_mode" id="word_mode" class="visually-hidden" aria-hidden="true" tabindex="-1">
+            <option value='select' selected>Select mode</option>
+            <option value='word'>Word mode</option>
+          </select>
+        </div>
+        <h3 class="app-save-load__title">Funkciók</h3>
+        <div id="buttons">
+          <div class="mode-toggle" id="playModeToggle">
+            <input type="radio" id="playModePlay" name="playModeToggle" value="play" checked>
+            <label for="playModePlay">Play mode</label>
+            <input type="radio" id="playModeTest" name="playModeToggle" value="test">
+            <label for="playModeTest">Test mode</label>
+          </div>
+          <select name="mode" id="mode" class="visually-hidden" aria-hidden="true" tabindex="-1">
+            <option value='play' selected>Play mode</option>
+            <option value='test'>Test mode</option>
+          </select>
+          <div class="control-row control-row--actions">
+            <button onclick='resetMatrix(0)' class="button" id="btnReset">Reset</button>
+            <button onclick='goGenerate()' class="button chk" id="check">Play</button>
+            <button type="button" class="button" id="btnStop">Stop</button>
+            <button type="button" class="button" id="btnStepBack">&lt;&lt;</button>
+            <button type="button" class="button" id="btnStepForward">&gt;&gt;</button>
+          </div>
+          <div class="control-row control-row--actions">
+            <button onclick='verify()' class="button" id="btnVerify">Verify</button>
+          </div>
+          <div class="control-row control-row--double">
+            <span>Delay:</span>
+            <select name="delay" id="delay">
+              <option value=0>none</option>
+              <option value=0.2 selected>0.2 sec</option>
+              <option value=0.5>0.5 sec</option>
+              <option value=1>1 sec</option>
+              <option value=2>2 sec</option>
+              <option value=5>5 sec</option>
+            </select>
+            <span>Max gen.:</span>
+            <select name="level" id="level">
+            </select>
+            <!-- www: sokszor régi cache-elt script.js — ez már a parse alatt feltölti 1–100-ig, később script.js újraírja -->
+            <script>
+              (function () {
+                var s = document.getElementById('level');
+                if (!s || s.options.length > 0) return;
+                var def = 10;
+                for (var i = 1; i <= 100; i++) {
+                  var o = document.createElement('option');
+                  o.value = String(i);
+                  o.textContent = String(i);
+                  if (i === def) o.selected = true;
+                  s.appendChild(o);
+                }
+              })();
+            </script>
+          </div>
+          <div id="verifySectionDraw">
+            <span>Draw gen.: </span>
+            <form id="drawLevel">
+              <input type="radio" id="level1" name="drawLevel" value="1" checked>
+              <label for="level1" class="exam-gen-pill" data-gen="1">Gen. 1.</label>
+              <input type="radio" id="level2" name="drawLevel" value="2">
+              <label for="level2" class="exam-gen-pill" data-gen="2">Gen. 2.</label>
+              <input type="radio" id="level3" name="drawLevel" value="3">
+              <label for="level3" class="exam-gen-pill" data-gen="3">Gen. 3.</label>
+              <input type="radio" id="level4" name="drawLevel" value="4">
+              <label for="level4" class="exam-gen-pill" data-gen="4">Gen. 4.</label>
+              <input type="radio" id="level5" name="drawLevel" value="5">
+              <label for="level5" class="exam-gen-pill" data-gen="5">Gen. 5.</label>
+              <input type="radio" id="level6" name="drawLevel" value="6">
+              <label for="level6" class="exam-gen-pill" data-gen="6">Gen. 6.</label>
+            </form>
+          </div>
+        </div>
+        </div>
+
+        <div id="sidebarExamPanel" class="app-exam-panel" hidden>
+          <h3 class="app-save-load__title" id="examSidebarTitle">Vizsga / Gyakorlás</h3>
+          <p id="examSidebarSubtitle" class="app-exam-panel__subtitle"></p>
+          <dl class="app-exam-meta" id="examMetaDl">
+            <dt>Feladat</dt><dd id="examMetaName">—</dd>
+            <dt>Készítő</dt><dd id="examMetaAuthor">—</dd>
+            <dt>Mikor</dt><dd id="examMetaWhen">—</dd>
+            <dt>Level</dt><dd id="examMetaLevel">—</dd>
+            <dt>Generációs mód</dt><dd id="examMetaGenMode">—</dd>
+            <dt>Generációk száma</dt><dd id="examMetaGenCount">—</dd>
+            <dt>Szólista</dt><dd id="examMetaWordList">—</dd>
+            <dt>Kitöltendő cellák száma</dt><dd id="examMetaPossible">—</dd>
+            <dt class="exam-meta-sentrows" hidden id="examMetaAvailDt">Lehetséges mondatok száma</dt>
+            <dd class="exam-meta-sentrows" hidden id="examMetaAvailDd"><span id="examMetaAvailableSentences">—</span></dd>
+            <dt class="exam-meta-sentrows" hidden id="examMetaEmbedDt">Kinyerhető mondatok száma</dt>
+            <dd class="exam-meta-sentrows" hidden id="examMetaEmbedDd"><span id="examMetaEmbeddableSentences">—</span></dd>
+          </dl>
+          <div id="examPracticeHelpWrap" class="exam-practice-help-wrap" hidden>
+            <label class="exam-practice-fill-help-toggle">
+              <input type="checkbox" id="examPracticeFillHelp" class="exam-practice-fill-help-toggle__input" />
+              <span class="exam-practice-fill-help-toggle__rail" aria-hidden="true"></span>
+              <span class="exam-practice-fill-help-toggle__text">Segítség a kitöltéshez</span>
+            </label>
+            <label class="exam-practice-fill-help-toggle">
+              <input type="checkbox" id="examPracticeKitoltesMessages" class="exam-practice-fill-help-toggle__input" />
+              <span class="exam-practice-fill-help-toggle__rail" aria-hidden="true"></span>
+              <span class="exam-practice-fill-help-toggle__text">Üzenetek a kitöltéshez</span>
+            </label>
+          </div>
+          <div id="examStartWrap" class="exam-start-wrap" hidden>
+            <button type="button" id="examBtnStart" class="button exam-btn-start">Vizsga indítása</button>
+          </div>
+          <div class="exam-gen-picker" id="examGenPicker">
+            <span>Rajz generáció:</span>
+            <div id="examDrawLevelRadios" class="exam-draw-level-radios"></div>
+          </div>
+          <div id="examWordSentenceGate" class="exam-word-sentence-gate" hidden>
+            <p id="examWordSentenceGateMsg" class="exam-word-sentence-gate__msg" role="status"></p>
+            <button type="button" id="examBtnWordSentences" class="button exam-btn-word-sentences" hidden>Szolistából mondatok</button>
+          </div>
+          <div id="examWordPickerSlot" class="exam-word-picker-slot" hidden></div>
+          <div class="exam-counters" id="examPracticeCounters">
+            <span>Good cell: <strong id="examGoodCell">0</strong></span>
+            <span>Bad cell: <strong id="examBadCell">0</strong></span>
+          </div>
+          <div id="examTimerSection">
+            <div id="examTimerCaption" class="exam-timer-caption"></div>
+            <div id="examTimerBig" class="exam-timer-big">—</div>
+          </div>
+          <div class="exam-eval-actions">
+            <button type="button" id="examBtnEvaluate" class="button">Evaluation</button>
+          </div>
+          <div id="examEvaluationBox" class="exam-evaluation-box" hidden></div>
+          <div id="examNotesWrap" class="exam-notes-wrap exam-notes-wrap--after-eval" hidden>
+            <label for="examNoteInput">Megjegyzés a vizsgáról</label>
+            <textarea id="examNoteInput" class="exam-note-input" rows="3" maxlength="2000" placeholder="Megjegyzés a vizsgáról"></textarea>
+            <button type="button" id="examNoteSaveBtn" class="button exam-note-save-btn" hidden>Megjegyzés mentése a vizsgához</button>
+          </div>
+          <div id="examFinishWrap" hidden>
+            <button type="button" id="examBtnFinish" class="button button--outline">Vizsga / gyakorlás befejezése</button>
+          </div>
+          <div id="examExitBackWrap" class="exam-exit-back-wrap" hidden>
+            <button type="button" id="examBtnExitBack" class="button button--outline exam-btn-exit-back">Kilépés</button>
+          </div>
+        </div>
+
+        <div id="saveLoadWrap" class="app-save-load" hidden>
+          <h3 class="app-save-load__title">Tábla mentés</h3>
+          <div class="app-save-load__btns">
+            <button type="button" id="btnOpenSaveModal" class="button">Mentés…</button>
+            <button type="button" id="btnOpenLoadModal" class="button">Betöltés…</button>
+            <button type="button" id="btnOpenTaskSaveModal" class="button">Feladat mentés…</button>
+          </div>
+        </div>
+
+        <div id="vizsgaWrap" class="app-save-load app-vizsga-wrap" hidden>
+          <h3 class="app-save-load__title">Vizsga / gyakorlás</h3>
+          <div class="app-save-load__btns">
+            <button type="button" id="btnOpenExamModal" class="button">Vizsga / Gyakorlás indítása…</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="app-main">
+        <div class="container">
+          <div id="winMessage" style="display: none;">Gratulálok! Nyertél!</div>
+          <div id="loserMessage" style="display: none;">Sajnálom! Vesztettél!</div>
+          <div class="board-stage" id="boardStage">
+          <div id="boardDiv">
+          </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="login-backdrop" id="saveBackdrop" aria-hidden="true">
+    <div class="login-modal" role="dialog" aria-labelledby="saveModalTitle">
+      <h3 id="saveModalTitle">Tábla mentése</h3>
+      <div id="saveForm">
+        <label for="saveGroupSelect">Csoport</label>
+        <select id="saveGroupSelect"></select>
+        <label for="saveNewGroupName">Új csoport neve (opcionális)</label>
+        <input type="text" id="saveNewGroupName" placeholder="Ha üres, a fenti csoportba ment">
+        <p id="saveNamesSummary" class="save-names-summary" aria-live="polite"></p>
+        <label for="saveOverwriteSelect">Meglévő mentés felülírása</label>
+        <select id="saveOverwriteSelect" disabled>
+          <option value="">— új mentés (név alább) —</option>
+        </select>
+        <label for="saveNameInput">Mentés neve</label>
+        <input type="text" id="saveNameInput" required maxlength="255" placeholder="pl. Feladat 1">
+        <label for="saveAsIcon">
+          <input type="checkbox" id="saveAsIcon">
+          Ikon mentés (betöltéskor ráhelyezés, méret/nagyítás megtartása)
+        </label>
+        <div class="login-modal__error" id="saveError"></div>
+        <div class="login-modal__actions">
+          <button type="button" id="saveCancel">Mégse</button>
+          <button type="button" id="saveSubmit">Mentés</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-backdrop" id="loadBackdrop" aria-hidden="true">
+    <div class="login-modal" role="dialog" aria-labelledby="loadModalTitle">
+      <h3 id="loadModalTitle">Tábla betöltése</h3>
+      <div id="loadForm">
+        <label for="loadGroupSelect">Csoport</label>
+        <select id="loadGroupSelect"></select>
+        <label for="loadSaveSelect">Mentés</label>
+        <select id="loadSaveSelect"></select>
+        <div class="login-modal__error" id="loadError"></div>
+        <div class="login-modal__actions login-modal__actions--spread">
+          <button type="button" id="loadDelete" class="btn-modal-danger">Mentés törlése</button>
+          <span class="login-modal__actions-right">
+            <button type="button" id="loadCancel">Mégse</button>
+            <button type="button" id="loadSubmit">Betöltés</button>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-backdrop" id="taskSaveBackdrop" aria-hidden="true">
+    <div class="login-modal" role="dialog" aria-labelledby="taskSaveModalTitle">
+      <h3 id="taskSaveModalTitle">Feladat mentése</h3>
+      <div id="taskSaveForm">
+        <label for="taskSaveGroupSelect">Csoport</label>
+        <select id="taskSaveGroupSelect"></select>
+        <label for="taskSaveNewGroupName">Új csoport neve (opcionális)</label>
+        <input type="text" id="taskSaveNewGroupName" placeholder="Ha üres, a fenti csoportba ment">
+        <label for="taskSaveOverwriteSelect">Meglévő feladat felülírása</label>
+        <select id="taskSaveOverwriteSelect" disabled>
+          <option value="">— új mentés (név alább) —</option>
+        </select>
+        <label for="taskSaveNameInput">Feladat neve</label>
+        <input type="text" id="taskSaveNameInput" required maxlength="255" placeholder="pl. Feladat 1">
+        <label for="taskDifficultyLevel">Level</label>
+        <select id="taskDifficultyLevel">
+          <option value="Easy">Easy</option>
+          <option value="Medium" selected>Medium</option>
+          <option value="Hard">Hard</option>
+        </select>
+        <label for="taskGenerationsCount">Generációk száma</label>
+        <select id="taskGenerationsCount">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5" selected>5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+        </select>
+        <label for="taskWordListSelect">Szólista (opcionális)</label>
+        <select id="taskWordListSelect">
+          <option value="">— nincs —</option>
+        </select>
+        <label for="taskTimeLimit">Időlimit (másodperc)</label>
+        <input type="number" id="taskTimeLimit" min="1" step="1" value="120">
+        <div class="login-modal__error" id="taskSaveError"></div>
+        <div class="login-modal__actions">
+          <button type="button" id="taskSaveCancel">Mégse</button>
+          <button type="button" id="taskSaveSubmit">Mentés</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-backdrop" id="examBackdrop" aria-hidden="true">
+    <div class="login-modal login-modal--wide exam-task-modal" role="dialog" aria-labelledby="examModalTitle">
+      <h3 id="examModalTitle">Feladat kiválasztása</h3>
+      <div id="examModalForm" class="exam-task-modal__form">
+        <div class="exam-task-modal__filters">
+          <div class="exam-task-modal__field">
+            <label for="examGroupFilter">Csoport</label>
+            <select id="examGroupFilter">
+              <option value="">Minden csoport</option>
+            </select>
+          </div>
+          <div class="exam-task-modal__field">
+            <label for="examLevelFilter">Level</label>
+            <select id="examLevelFilter">
+              <option value="">Minden</option>
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+          </div>
+        </div>
+        <div class="exam-task-modal__field exam-task-modal__field--list">
+          <label for="examTaskNameFilter">Szűrés névre</label>
+          <input type="search" id="examTaskNameFilter" class="exam-task-modal__name-filter" placeholder="Feladat neve…" autocomplete="off">
+          <select id="examTaskSelect" size="8" aria-label="Feladat lista"></select>
+        </div>
+        <div class="login-modal__error" id="examModalError"></div>
+        <div class="exam-task-modal__footer">
+          <div class="exam-task-modal__primary-actions">
+            <button type="button" id="examModalPractice" class="exam-task-modal__btn exam-task-modal__btn--practice">Gyakorlás</button>
+            <button type="button" id="examModalExam" class="exam-task-modal__btn exam-task-modal__btn--exam">Vizsga</button>
+          </div>
+          <button type="button" id="examModalCancel" class="exam-task-modal__btn exam-task-modal__btn--cancel">Mégse</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-backdrop" id="loginBackdrop" aria-hidden="true">
+    <div class="login-modal" role="dialog" aria-labelledby="loginTitle">
+      <h3 id="loginTitle">Bejelentkezés</h3>
+      <form id="loginForm">
+        <label for="loginField">E-mail vagy felhasználónév</label>
+        <input type="text" id="loginField" name="login" autocomplete="username" required>
+        <label for="loginPassword">Jelszó</label>
+        <input type="password" id="loginPassword" name="password" autocomplete="current-password" required>
+        <div class="login-modal__error" id="loginError"></div>
+        <div class="login-modal__actions">
+          <button type="button" id="loginCancel">Mégse</button>
+          <button type="submit">Belépés</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    window.__CELLAUTO_DEFER_INIT__ = true;
+  </script>
+  <script src="./api.js?v=8"></script>
+  <script src="./script.js?v=17"></script>
+  <script src="./app.js?v=6"></script>
+  <script src="./board-save.js?v=5"></script>
+  <script src="./task-save.js?v=1"></script>
+  <script src="./exam-mode.js?v=31"></script>
+</body>
+
+</html>

@@ -1,4 +1,4 @@
-admin/
-www/
-api/
+/admin/
+/www/
+/api/
 sync.sh
